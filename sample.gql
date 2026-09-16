@@ -1,0 +1,827 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.0"
+    import: ["@key", "@shareable"]
+  )
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+type Query {
+  inventoryItemById(id: ID!): InventoryItem @cost(weight: "10")
+  "Fetches an object given its ID."
+  node("ID of the object." id: ID!): Node @cost(weight: "10")
+  "Lookup nodes by a list of IDs."
+  nodes("The list of node IDs." ids: [ID!]!): [Node]! @cost(weight: "10")
+  orderById(id: ID!): Order @cost(weight: "10")
+  paymentById(id: ID!): Payment @cost(weight: "10")
+  productById(id: ID!): Product @cost(weight: "10")
+  products(
+    "Returns the elements in the list that come after the specified cursor."
+    after: String
+    "Returns the elements in the list that come before the specified cursor."
+    before: String
+    brand: String
+    category: String
+    "Returns the first _n_ elements from the list."
+    first: Int
+    inStockOnly: Boolean
+    "Returns the last _n_ elements from the list."
+    last: Int
+    maxPrice: Decimal
+    minPrice: Decimal
+    searchText: String
+  ): ProductsConnection @cost(weight: "10")
+  recommendationById(id: ID!): Recommendation @cost(weight: "10")
+  recommendations(
+    "Returns the elements in the list that come after the specified cursor."
+    after: String
+    "Returns the elements in the list that come before the specified cursor."
+    before: String
+    "Returns the first _n_ elements from the list."
+    first: Int
+    "Returns the last _n_ elements from the list."
+    last: Int
+  ): RecommendationsConnection @cost(weight: "10")
+  reviewById(id: ID!): Review @cost(weight: "10")
+  userById(id: ID!): User @cost(weight: "10")
+  userByUsername(username: String!): User @cost(weight: "10")
+  users(
+    "Returns the elements in the list that come after the specified cursor."
+    after: String
+    "Returns the elements in the list that come before the specified cursor."
+    before: String
+    "Returns the first _n_ elements from the list."
+    first: Int
+    "Returns the last _n_ elements from the list."
+    last: Int
+  ): UsersConnection @cost(weight: "10")
+  viewer: Viewer!
+}
+
+type Mutation {
+  addProductToCart(input: AddProductToCartInput!): AddProductToCartPayload!
+    @cost(weight: "10")
+  addToWishlist(input: WishlistItemInput!): AddToWishlistPayload!
+    @cost(weight: "10")
+  applyCoupon(input: ApplyCouponInput!): ApplyCouponPayload!
+    @cost(weight: "10")
+  cancelOrder(input: CancelOrderInput!): CancelOrderPayload!
+    @cost(weight: "10")
+  checkout: CheckoutPayload! @cost(weight: "10")
+  createOrder(input: CreateOrderInput!): CreateOrderPayload! @cost(weight: "10")
+  createPayment(input: CreatePaymentInput!): CreatePaymentPayload!
+    @cost(weight: "10")
+  createReview(input: CreateReviewInput!): CreateReviewPayload!
+    @cost(weight: "10")
+  markNotificationRead(input: MarkNotificationReadInput!): MarkNotificationReadPayload!
+    @cost(weight: "10")
+  markReviewHelpful(input: MarkReviewHelpfulInput!): MarkReviewHelpfulPayload!
+    @cost(weight: "10")
+  moveSavedItemToCart(input: MoveSavedItemToCartInput!): MoveSavedItemToCartPayload!
+    @cost(weight: "10")
+  refundPayment(input: RefundPaymentInput!): RefundPaymentPayload!
+    @cost(weight: "10")
+  removeFromWishlist(input: WishlistItemInput!): RemoveFromWishlistPayload!
+    @cost(weight: "10")
+  removeProductFromCart(input: RemoveProductFromCartInput!): RemoveProductFromCartPayload!
+    @cost(weight: "10")
+  requestPasswordReset(input: RequestPasswordResetInput!): RequestPasswordResetPayload!
+    @cost(weight: "10")
+  resetPassword(input: ResetPasswordInput!): ResetPasswordPayload!
+    @cost(weight: "10")
+  respondToReview(input: RespondToReviewInput!): RespondToReviewPayload!
+    @cost(weight: "10")
+  restockProduct(input: RestockProductInput!): RestockProductPayload!
+    @cost(weight: "10")
+  saveItemForLater(input: SaveItemForLaterInput!): SaveItemForLaterPayload!
+    @cost(weight: "10")
+  uploadProductPicture(input: UploadProductPictureInput!): UploadProductPicturePayload!
+    @cost(weight: "10")
+}
+
+# ===== Review (subgraph: Reviews) =====
+type Subscription {
+  onReviewCreated(after: String): ReviewCreated!
+}
+
+type CreateReviewPayload {
+  errors: [Error!]
+  review: Review
+}
+
+# ===== Recommendation (subgraph: Recommendations) =====
+type Recommendation implements Node @key(fields: "id") {
+  id: ID!
+  product: Product!
+  reason: String!
+  score: Float!
+  source: RecommendationSource!
+  user: User!
+}
+
+"A connection to a list of items."
+type RecommendationsConnection {
+  "A list of edges."
+  edges: [RecommendationsEdge!]
+  "A flattened list of the nodes."
+  nodes: [Recommendation!]
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+}
+
+"An edge in a connection."
+type RecommendationsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Recommendation!
+}
+
+# ===== Cart (subgraph: Cart) =====
+type AddProductToCartPayload {
+  cart: Cart
+  errors: [CartQuantityError!]
+}
+
+# Needs @key so the Checkout/Orders composition can reference Cart by id
+# without owning its fields (see the Checkout section above).
+type Cart implements Node @key(fields: "id") {
+  couponCode: String
+  createdAt: DateTime!
+  discount: Decimal
+  expiresAt: DateTime
+  id: ID!
+  items(
+    "Returns the elements in the list that come after the specified cursor."
+    after: String
+    "Returns the elements in the list that come before the specified cursor."
+    before: String
+    "Returns the first _n_ elements from the list."
+    first: Int
+    "Returns the last _n_ elements from the list."
+    last: Int
+  ): CartItemsConnection @cost(weight: "10")
+  savedForLater: [CartItem!]! @cost(weight: "10")
+  updatedAt: DateTime!
+}
+
+type CartItem {
+  addedAt: DateTime!
+  id: ID!
+  product: Product!
+  quantity: Int!
+}
+
+"A connection to a list of items."
+type CartItemsConnection {
+  "A list of edges."
+  edges: [CartItemsEdge!]
+  "A flattened list of the nodes."
+  nodes: [CartItem!]
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+}
+
+"An edge in a connection."
+type CartItemsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: CartItem!
+}
+
+type ApplyCouponPayload {
+  cart: Cart
+  errors: [Error!]
+}
+
+type SaveItemForLaterPayload {
+  cart: Cart
+  errors: [Error!]
+}
+
+type MoveSavedItemToCartPayload {
+  cart: Cart
+  errors: [Error!]
+}
+
+# ===== Checkout (subgraph: Checkout — composes Cart + Orders entities) =====
+# CheckoutPayload aggregates results from two owning subgraphs:
+#   cart, savedItems, couponCode, discount -> resolved via the Cart entity (owned by Cart subgraph)
+#   order                                  -> resolved via the Order entity (owned by Orders subgraph)
+# Mutation.checkout itself should live in whichever subgraph orchestrates the
+# cart -> order transition (typically Orders), referencing Cart by @key(fields: "id").
+type CheckoutPayload {
+  cart: Cart
+  order: Order
+  savedItems: [CartItem!]
+  couponCode: String
+  discount: Decimal
+}
+
+# ===== Order (subgraph: Orders) =====
+type CreateOrderPayload {
+  errors: [Error!]
+  order: Order
+}
+
+type CancelOrderPayload {
+  errors: [Error!]
+  order: Order
+}
+
+# Needs @key so Checkout (and any other subgraph) can reference Order by id
+# without owning its fields.
+type Order implements Node @key(fields: "id") {
+  createdAt: DateTime!
+  events: [OrderEvent!]! @cost(weight: "10")
+  id: ID!
+  items: [OrderItem!]!
+  payments: [Payment!]! @cost(weight: "10")
+  shippingAddress: Address!
+  status: OrderStatus!
+  trackingNumber: String
+  updatedAt: DateTime!
+  user: User!
+  weight: Int!
+}
+
+type OrderEvent {
+  note: String
+  occurredAt: DateTime!
+  status: OrderStatus!
+}
+
+type OrderItem {
+  id: ID!
+  order: Order
+  orderId: ID!
+  price: Decimal!
+  product: Product!
+  quantity: Int!
+}
+
+enum OrderStatus {
+  PLACED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+# ===== Payment (subgraph: Payments) =====
+type CreatePaymentPayload {
+  errors: [Error!]
+  payment: Payment
+}
+
+type RefundPaymentPayload {
+  errors: [Error!]
+  payment: Payment
+}
+
+type Payment implements Node @key(fields: "id") {
+  amount: Decimal!
+  createdAt: DateTime!
+  id: ID!
+  method: PaymentMethod
+  order: Order!
+  status: PaymentStatus!
+  updatedAt: DateTime!
+}
+
+type PaymentMethod implements Node @key(fields: "id") {
+  brand: String!
+  id: ID!
+  last4: String!
+  type: String!
+}
+
+# ===== Inventory (subgraph: Inventory) =====
+type InventoryItem implements Node @key(fields: "id") {
+  id: ID!
+  product: Product!
+  quantity: Int!
+  status: StockStatus!
+}
+
+
+# Identical value type reused by every *Connection across every subgraph;
+# mark it @shareable so each subgraph's copy composes instead of conflicting.
+"Information about pagination in a connection."
+type PageInfo @shareable {
+  "When paginating forwards, the cursor to continue."
+  endCursor: String
+  "Indicates whether more edges exist following the set defined by the clients arguments."
+  hasNextPage: Boolean!
+  "Indicates whether more edges exist prior the set defined by the clients arguments."
+  hasPreviousPage: Boolean!
+  "When paginating backwards, the cursor to continue."
+  startCursor: String
+}
+
+# ===== Product (subgraph: Catalog) =====
+# Product is referenced by Cart, Orders, Reviews, Recommendations and Inventory.
+# It is owned here (Catalog) with @key(fields: "id"); every other subgraph that
+# needs Product should declare a stub `extend type Product @key(fields: "id") { id: ID! @external }`
+# and add only the fields it contributes.
+type Product implements Node @key(fields: "id") {
+  averageRating: Float
+  brand: String
+  categories: [String!]!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  deliveryEstimate(zip: String!): Int!
+  dimension: ProductDimension!
+  frequentlyBoughtTogether: [Product!]! @cost(weight: "10")
+  id: ID!
+  item: InventoryItem @cost(weight: "10")
+  name: String!
+  pictureFileName: String
+  pictureUrl: URI
+  price: Decimal!
+  recommendation: Recommendation @cost(weight: "10")
+  reviewCount: Int! @cost(weight: "10")
+  reviews(
+    "Returns the elements in the list that come after the specified cursor."
+    after: String
+    "Returns the elements in the list that come before the specified cursor."
+    before: String
+    "Returns the first _n_ elements from the list."
+    first: Int
+    "Returns the last _n_ elements from the list."
+    last: Int
+  ): ProductReviewsConnection @cost(weight: "10")
+  similarProducts: [Product!]! @cost(weight: "10")
+  updatedAt: DateTime!
+  weight: Int!
+}
+
+# ===== Users (subgraph: Users) =====
+type Address {
+  city: String!
+  country: String!
+  state: String!
+  street: String!
+  zip: String!
+}
+
+type RequestPasswordResetPayload {
+  success: Boolean!
+}
+
+type ResetPasswordPayload {
+  success: Boolean!
+}
+
+type AddToWishlistPayload {
+  wishlist: [Product!]!
+}
+
+type RemoveFromWishlistPayload {
+  wishlist: [Product!]!
+}
+
+type Notification implements Node @key(fields: "id") {
+  createdAt: DateTime!
+  id: ID!
+  message: String!
+  read: Boolean!
+  type: NotificationType!
+}
+
+type MarkNotificationReadPayload {
+  errors: [Error!]
+  notification: Notification
+}
+
+"A connection to a list of items."
+type NotificationsConnection {
+  "A list of edges."
+  edges: [NotificationsEdge!]
+  "A flattened list of the nodes."
+  nodes: [Notification!]
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+}
+
+"An edge in a connection."
+type NotificationsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Notification!
+}
+
+type ProductAmountCannotBeLowerThanOneError implements Error {
+  message: String!
+}
+
+type ProductDimension {
+  height: Float!
+  length: Float!
+  width: Float!
+}
+
+"A connection to a list of items."
+type ProductReviewsConnection {
+  "A list of edges."
+  edges: [ProductReviewsEdge!]
+  "A flattened list of the nodes."
+  nodes: [Review!]
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+}
+
+"An edge in a connection."
+type ProductReviewsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Review!
+}
+
+"A connection to a list of items."
+type ProductsConnection {
+  "A list of edges."
+  edges: [ProductsEdge!]
+  "A flattened list of the nodes."
+  nodes: [Product!]
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+}
+
+"An edge in a connection."
+type ProductsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Product!
+}
+
+type RemoveProductFromCartPayload {
+  cart: Cart
+  errors: [CartQuantityError!]
+}
+
+type RestockProductPayload {
+  errors: [Error!]
+  product: Product
+}
+
+type Review implements Node @key(fields: "id") {
+  author: User @cost(weight: "10")
+  body: String!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  helpfulCount: Int!
+  id: ID!
+  images: [URI!]!
+  product: Product!
+  response: ReviewResponse
+  stars: Int!
+  status: ReviewStatus!
+  updatedAt: DateTime!
+}
+
+type ReviewResponse {
+  body: String!
+  respondedAt: DateTime!
+}
+
+type MarkReviewHelpfulPayload {
+  errors: [Error!]
+  review: Review
+}
+
+type RespondToReviewPayload {
+  errors: [Error!]
+  review: Review
+}
+
+type ReviewCreated {
+  cursor: String!
+  review: Review!
+}
+
+type UnknownProductError implements Error {
+  message: String!
+  productId: ID!
+}
+
+type UploadProductPicturePayload {
+  errors: [UploadProductPictureError!]
+  product: Product
+}
+
+# Owned here (Users) with @key(fields: "id"); Orders/Reviews/Recommendations
+# reference it as a stub entity (`extend type User @key(fields: "id") { id: ID! @external }`).
+type User implements Node @key(fields: "id") {
+  addresses: [Address!]!
+  birthdate: DateTime!
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  name: String!
+  notifications(
+    "Returns the elements in the list that come after the specified cursor."
+    after: String
+    "Returns the elements in the list that come before the specified cursor."
+    before: String
+    "Returns the first _n_ elements from the list."
+    first: Int
+    "Returns the last _n_ elements from the list."
+    last: Int
+  ): NotificationsConnection @cost(weight: "10")
+  orders(
+    "Returns the elements in the list that come after the specified cursor."
+    after: String
+    "Returns the elements in the list that come before the specified cursor."
+    before: String
+    "Returns the first _n_ elements from the list."
+    first: Int
+    "Returns the last _n_ elements from the list."
+    last: Int
+  ): UserOrdersConnection @cost(weight: "10")
+  paymentMethods: [PaymentMethod!]! @cost(weight: "10")
+  recommendations: [Recommendation!]! @cost(weight: "10")
+  reviews(
+    "Returns the elements in the list that come after the specified cursor."
+    after: String
+    "Returns the elements in the list that come before the specified cursor."
+    before: String
+    "Returns the first _n_ elements from the list."
+    first: Int
+    "Returns the last _n_ elements from the list."
+    last: Int
+  ): UserReviewsConnection @cost(weight: "10")
+  role: UserRole!
+  updatedAt: DateTime!
+  username: String!
+  wishlist: [Product!]! @cost(weight: "10")
+}
+
+"A connection to a list of items."
+type UserOrdersConnection {
+  "A list of edges."
+  edges: [UserOrdersEdge!]
+  "A flattened list of the nodes."
+  nodes: [Order!]
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+}
+
+"An edge in a connection."
+type UserOrdersEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Order!
+}
+
+"A connection to a list of items."
+type UserReviewsConnection {
+  "A list of edges."
+  edges: [UserReviewsEdge!]
+  "A flattened list of the nodes."
+  nodes: [Review!]
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+}
+
+"An edge in a connection."
+type UserReviewsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Review!
+}
+
+"A connection to a list of items."
+type UsersConnection {
+  "A list of edges."
+  edges: [UsersEdge!]
+  "A flattened list of the nodes."
+  nodes: [User!]
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+}
+
+"An edge in a connection."
+type UsersEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: User!
+}
+
+# Viewer is a singleton composition root, not an entity (no @key/id) — each
+# subgraph that contributes to it declares `extend type Viewer @shareable`
+# and its own field(s) (here, cart, owned by the Cart subgraph). Query.viewer
+# must resolve identically (e.g. return `{}`) in every subgraph that extends it.
+type Viewer @shareable {
+  cart: Cart! @cost(weight: "10")
+}
+
+# Every subgraph that returns an error union member must redeclare this
+# interface identically; graphql-federation merges identical interface defs.
+interface Error {
+  message: String!
+}
+
+"The node interface is implemented by entities that have a global unique identifier."
+# Same rule as Error above: redeclare identically in each subgraph whose
+# entities implement Node.
+interface Node {
+  id: ID!
+}
+
+union CartQuantityError = ProductAmountCannotBeLowerThanOneError
+
+union UploadProductPictureError = UnknownProductError
+
+input AddProductToCartInput {
+  productId: ID!
+  quantity: Int!
+}
+
+input AddressInput {
+  city: String!
+  country: String!
+  state: String!
+  street: String!
+  zip: String!
+}
+
+input ApplyCouponInput {
+  cartId: ID!
+  code: String!
+}
+
+input CancelOrderInput {
+  orderId: ID!
+  reason: String
+}
+
+input CreateOrderInput {
+  items: [OrderItemInput!]!
+  shippingAddress: AddressInput!
+  userId: ID!
+  weight: Int!
+}
+
+input CreatePaymentInput {
+  orderId: ID!
+  paymentMethodId: ID
+}
+
+input CreateReviewInput {
+  authorId: ID!
+  body: String!
+  productId: ID!
+  stars: Int!
+}
+
+input MarkNotificationReadInput {
+  notificationId: ID!
+}
+
+input MarkReviewHelpfulInput {
+  reviewId: ID!
+}
+
+input MoveSavedItemToCartInput {
+  cartItemId: ID!
+}
+
+input OrderItemInput {
+  price: Decimal!
+  productId: ID!
+  quantity: Int!
+}
+
+input RefundPaymentInput {
+  amount: Decimal
+  paymentId: ID!
+}
+
+input RemoveProductFromCartInput {
+  productId: ID!
+  quantity: Int!
+}
+
+input RequestPasswordResetInput {
+  email: String!
+}
+
+input ResetPasswordInput {
+  newPassword: String!
+  token: String!
+}
+
+input RespondToReviewInput {
+  body: String!
+  reviewId: ID!
+}
+
+input RestockProductInput {
+  productId: ID!
+  quantity: Int!
+}
+
+input SaveItemForLaterInput {
+  cartItemId: ID!
+}
+
+input UploadProductPictureInput {
+  picture: Upload!
+  productId: ID!
+}
+
+input WishlistItemInput {
+  productId: ID!
+}
+
+enum NotificationType {
+  ORDER_STATUS_CHANGED
+  BACK_IN_STOCK
+  PRICE_DROP
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  DECLINED
+  REFUNDED
+}
+
+enum RecommendationSource {
+  COLLABORATIVE_FILTERING
+  CONTENT_BASED
+  TRENDING
+  MANUAL
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+# Scalars below are used across multiple domains; federation has no
+# @shareable for scalars — redeclare each one identically (same name and
+# @specifiedBy url) in every subgraph that uses it.
+"The `DateTime` scalar type represents a date and time with time zone offset information."
+scalar DateTime
+  @specifiedBy(url: "https://scalars.graphql.org/chillicream/date-time.html")
+
+"The `Decimal` scalar type represents a decimal floating-point number with high precision."
+scalar Decimal
+  @specifiedBy(url: "https://scalars.graphql.org/chillicream/decimal.html")
+
+"The `Upload` scalar type represents a file upload."
+scalar Upload
+
+"The `URI` scalar type represents a Uniform Resource Identifier (URI) as defined by RFC 3986."
+scalar URI @specifiedBy(url: "https://scalars.graphql.org/chillicream/uri.html")
+
+directive @cost(weight: String!) on
+  | SCALAR
+  | OBJECT
+  | FIELD_DEFINITION
+  | ARGUMENT_DEFINITION
+  | ENUM
+  | INPUT_FIELD_DEFINITION
+
+directive @defer(if: Boolean = true, label: String) on
+  | FRAGMENT_SPREAD
+  | INLINE_FRAGMENT
+
+directive @tag(name: String!) repeatable on
+  | SCHEMA
+  | SCALAR
+  | OBJECT
+  | FIELD_DEFINITION
+  | ARGUMENT_DEFINITION
+  | INTERFACE
+  | UNION
+  | ENUM
+  | ENUM_VALUE
+  | INPUT_OBJECT
+  | INPUT_FIELD_DEFINITION
+  | DIRECTIVE_DEFINITION
