@@ -1,24 +1,12 @@
-extend schema
-  @link(
-    url: "https://specs.apollo.dev/federation/v2.0"
-    import: ["@key", "@shareable"]
-  )
-
-schema {
-  query: Query
-  mutation: Mutation
-  subscription: Subscription
-}
-
 type Query {
-  inventoryItemById(id: ID!): InventoryItem @cost(weight: "10")
   "Fetches an object given its ID."
-  node("ID of the object." id: ID!): Node @cost(weight: "10")
+  node("ID of the object." id: ID!): Node
   "Lookup nodes by a list of IDs."
-  nodes("The list of node IDs." ids: [ID!]!): [Node]! @cost(weight: "10")
-  orderById(id: ID!): Order @cost(weight: "10")
-  paymentById(id: ID!): Payment @cost(weight: "10")
-  productById(id: ID!): Product @cost(weight: "10")
+  nodes("The list of node IDs." ids: [ID!]!): [Node]!
+  inventoryItemById(id: ID!): InventoryItem
+  orderById(id: ID!): Order
+  paymentById(id: ID!): Payment
+  productById(id: ID!): Product
   products(
     "Returns the elements in the list that come after the specified cursor."
     after: String
@@ -34,8 +22,8 @@ type Query {
     maxPrice: Decimal
     minPrice: Decimal
     searchText: String
-  ): ProductsConnection @cost(weight: "10")
-  recommendationById(id: ID!): Recommendation @cost(weight: "10")
+  ): ProductsConnection
+  recommendationById(id: ID!): Recommendation
   recommendations(
     "Returns the elements in the list that come after the specified cursor."
     after: String
@@ -45,10 +33,10 @@ type Query {
     first: Int
     "Returns the last _n_ elements from the list."
     last: Int
-  ): RecommendationsConnection @cost(weight: "10")
-  reviewById(id: ID!): Review @cost(weight: "10")
-  userById(id: ID!): User @cost(weight: "10")
-  userByUsername(username: String!): User @cost(weight: "10")
+  ): RecommendationsConnection
+  reviewById(id: ID!): Review
+  userById(id: ID!): User
+  userByUsername(username: String!): User
   users(
     "Returns the elements in the list that come after the specified cursor."
     after: String
@@ -58,63 +46,53 @@ type Query {
     first: Int
     "Returns the last _n_ elements from the list."
     last: Int
-  ): UsersConnection @cost(weight: "10")
+  ): UsersConnection
   viewer: Viewer!
 }
 
 type Mutation {
   addProductToCart(input: AddProductToCartInput!): AddProductToCartPayload!
-    @cost(weight: "10")
   addToWishlist(input: WishlistItemInput!): AddToWishlistPayload!
-    @cost(weight: "10")
   applyCoupon(input: ApplyCouponInput!): ApplyCouponPayload!
-    @cost(weight: "10")
   cancelOrder(input: CancelOrderInput!): CancelOrderPayload!
-    @cost(weight: "10")
-  checkout: CheckoutPayload! @cost(weight: "10")
-  createOrder(input: CreateOrderInput!): CreateOrderPayload! @cost(weight: "10")
+  checkout: CheckoutPayload!
+  createOrder(input: CreateOrderInput!): CreateOrderPayload!
   createPayment(input: CreatePaymentInput!): CreatePaymentPayload!
-    @cost(weight: "10")
   createReview(input: CreateReviewInput!): CreateReviewPayload!
-    @cost(weight: "10")
-  markNotificationRead(input: MarkNotificationReadInput!): MarkNotificationReadPayload!
-    @cost(weight: "10")
+  markNotificationRead(
+    input: MarkNotificationReadInput!
+  ): MarkNotificationReadPayload!
   markReviewHelpful(input: MarkReviewHelpfulInput!): MarkReviewHelpfulPayload!
-    @cost(weight: "10")
-  moveSavedItemToCart(input: MoveSavedItemToCartInput!): MoveSavedItemToCartPayload!
-    @cost(weight: "10")
+  moveSavedItemToCart(
+    input: MoveSavedItemToCartInput!
+  ): MoveSavedItemToCartPayload!
   refundPayment(input: RefundPaymentInput!): RefundPaymentPayload!
-    @cost(weight: "10")
   removeFromWishlist(input: WishlistItemInput!): RemoveFromWishlistPayload!
-    @cost(weight: "10")
-  removeProductFromCart(input: RemoveProductFromCartInput!): RemoveProductFromCartPayload!
-    @cost(weight: "10")
-  requestPasswordReset(input: RequestPasswordResetInput!): RequestPasswordResetPayload!
-    @cost(weight: "10")
+  removeProductFromCart(
+    input: RemoveProductFromCartInput!
+  ): RemoveProductFromCartPayload!
+  requestPasswordReset(
+    input: RequestPasswordResetInput!
+  ): RequestPasswordResetPayload!
   resetPassword(input: ResetPasswordInput!): ResetPasswordPayload!
-    @cost(weight: "10")
   respondToReview(input: RespondToReviewInput!): RespondToReviewPayload!
-    @cost(weight: "10")
   restockProduct(input: RestockProductInput!): RestockProductPayload!
-    @cost(weight: "10")
   saveItemForLater(input: SaveItemForLaterInput!): SaveItemForLaterPayload!
-    @cost(weight: "10")
-  uploadProductPicture(input: UploadProductPictureInput!): UploadProductPicturePayload!
-    @cost(weight: "10")
+  uploadProductPicture(
+    input: UploadProductPictureInput!
+  ): UploadProductPicturePayload!
 }
 
-# ===== Review (subgraph: Reviews) =====
 type Subscription {
   onReviewCreated(after: String): ReviewCreated!
 }
 
 type CreateReviewPayload {
-  errors: [Error!]
   review: Review
+  errors: [CreateReviewError!]
 }
 
-# ===== Recommendation (subgraph: Recommendations) =====
-type Recommendation implements Node @key(fields: "id") {
+type Recommendation implements Node {
   id: ID!
   product: Product!
   reason: String!
@@ -141,15 +119,12 @@ type RecommendationsEdge {
   node: Recommendation!
 }
 
-# ===== Cart (subgraph: Cart) =====
 type AddProductToCartPayload {
   cart: Cart
-  errors: [CartQuantityError!]
+  errors: [AddProductToCartError!]
 }
 
-# Needs @key so the Checkout/Orders composition can reference Cart by id
-# without owning its fields (see the Checkout section above).
-type Cart implements Node @key(fields: "id") {
+type Cart implements Node {
   couponCode: String
   createdAt: DateTime!
   discount: Decimal
@@ -164,8 +139,8 @@ type Cart implements Node @key(fields: "id") {
     first: Int
     "Returns the last _n_ elements from the list."
     last: Int
-  ): CartItemsConnection @cost(weight: "10")
-  savedForLater: [CartItem!]! @cost(weight: "10")
+  ): CartItemsConnection
+  savedForLater: [CartItem!]!
   updatedAt: DateTime!
 }
 
@@ -196,25 +171,24 @@ type CartItemsEdge {
 
 type ApplyCouponPayload {
   cart: Cart
-  errors: [Error!]
+  errors: [ApplyCouponError!]
 }
 
 type SaveItemForLaterPayload {
   cart: Cart
-  errors: [Error!]
+  errors: [SaveItemForLaterError!]
 }
 
 type MoveSavedItemToCartPayload {
   cart: Cart
-  errors: [Error!]
+  errors: [MoveSavedItemToCartError!]
 }
 
-# ===== Checkout (subgraph: Checkout — composes Cart + Orders entities) =====
 # CheckoutPayload aggregates results from two owning subgraphs:
 #   cart, savedItems, couponCode, discount -> resolved via the Cart entity (owned by Cart subgraph)
 #   order                                  -> resolved via the Order entity (owned by Orders subgraph)
 # Mutation.checkout itself should live in whichever subgraph orchestrates the
-# cart -> order transition (typically Orders), referencing Cart by @key(fields: "id").
+# cart -> order transition (typically Orders), referencing Cart by id.
 type CheckoutPayload {
   cart: Cart
   order: Order
@@ -223,25 +197,22 @@ type CheckoutPayload {
   discount: Decimal
 }
 
-# ===== Order (subgraph: Orders) =====
 type CreateOrderPayload {
-  errors: [Error!]
   order: Order
+  errors: [CreateOrderError!]
 }
 
 type CancelOrderPayload {
-  errors: [Error!]
   order: Order
+  errors: [CancelOrderError!]
 }
 
-# Needs @key so Checkout (and any other subgraph) can reference Order by id
-# without owning its fields.
-type Order implements Node @key(fields: "id") {
+type Order implements Node {
   createdAt: DateTime!
-  events: [OrderEvent!]! @cost(weight: "10")
+  events: [OrderEvent!]!
   id: ID!
   items: [OrderItem!]!
-  payments: [Payment!]! @cost(weight: "10")
+  payments: [Payment!]!
   shippingAddress: Address!
   status: OrderStatus!
   trackingNumber: String
@@ -273,18 +244,17 @@ enum OrderStatus {
   CANCELLED
   REFUNDED
 }
-# ===== Payment (subgraph: Payments) =====
 type CreatePaymentPayload {
-  errors: [Error!]
   payment: Payment
+  errors: [CreatePaymentError!]
 }
 
 type RefundPaymentPayload {
-  errors: [Error!]
   payment: Payment
+  errors: [RefundPaymentError!]
 }
 
-type Payment implements Node @key(fields: "id") {
+type Payment implements Node {
   amount: Decimal!
   createdAt: DateTime!
   id: ID!
@@ -294,26 +264,22 @@ type Payment implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-type PaymentMethod implements Node @key(fields: "id") {
+type PaymentMethod implements Node {
   brand: String!
   id: ID!
   last4: String!
   type: String!
 }
 
-# ===== Inventory (subgraph: Inventory) =====
-type InventoryItem implements Node @key(fields: "id") {
+type InventoryItem implements Node {
   id: ID!
   product: Product!
   quantity: Int!
   status: StockStatus!
 }
 
-
-# Identical value type reused by every *Connection across every subgraph;
-# mark it @shareable so each subgraph's copy composes instead of conflicting.
 "Information about pagination in a connection."
-type PageInfo @shareable {
+type PageInfo {
   "When paginating forwards, the cursor to continue."
   endCursor: String
   "Indicates whether more edges exist following the set defined by the clients arguments."
@@ -324,12 +290,7 @@ type PageInfo @shareable {
   startCursor: String
 }
 
-# ===== Product (subgraph: Catalog) =====
-# Product is referenced by Cart, Orders, Reviews, Recommendations and Inventory.
-# It is owned here (Catalog) with @key(fields: "id"); every other subgraph that
-# needs Product should declare a stub `extend type Product @key(fields: "id") { id: ID! @external }`
-# and add only the fields it contributes.
-type Product implements Node @key(fields: "id") {
+type Product implements Node {
   averageRating: Float
   brand: String
   categories: [String!]!
@@ -337,15 +298,15 @@ type Product implements Node @key(fields: "id") {
   deletedAt: DateTime
   deliveryEstimate(zip: String!): Int!
   dimension: ProductDimension!
-  frequentlyBoughtTogether: [Product!]! @cost(weight: "10")
+  frequentlyBoughtTogether: [Product!]!
   id: ID!
-  item: InventoryItem @cost(weight: "10")
+  item: InventoryItem
   name: String!
   pictureFileName: String
   pictureUrl: URI
   price: Decimal!
-  recommendation: Recommendation @cost(weight: "10")
-  reviewCount: Int! @cost(weight: "10")
+  recommendation: Recommendation
+  reviewCount: Int!
   reviews(
     "Returns the elements in the list that come after the specified cursor."
     after: String
@@ -355,13 +316,12 @@ type Product implements Node @key(fields: "id") {
     first: Int
     "Returns the last _n_ elements from the list."
     last: Int
-  ): ProductReviewsConnection @cost(weight: "10")
-  similarProducts: [Product!]! @cost(weight: "10")
+  ): ProductReviewsConnection
+  similarProducts: [Product!]!
   updatedAt: DateTime!
   weight: Int!
 }
 
-# ===== Users (subgraph: Users) =====
 type Address {
   city: String!
   country: String!
@@ -386,7 +346,7 @@ type RemoveFromWishlistPayload {
   wishlist: [Product!]!
 }
 
-type Notification implements Node @key(fields: "id") {
+type Notification implements Node {
   createdAt: DateTime!
   id: ID!
   message: String!
@@ -395,8 +355,8 @@ type Notification implements Node @key(fields: "id") {
 }
 
 type MarkNotificationReadPayload {
-  errors: [Error!]
   notification: Notification
+  errors: [MarkNotificationReadError!]
 }
 
 "A connection to a list of items."
@@ -465,16 +425,16 @@ type ProductsEdge {
 
 type RemoveProductFromCartPayload {
   cart: Cart
-  errors: [CartQuantityError!]
+  errors: [RemoveProductFromCartError!]
 }
 
 type RestockProductPayload {
-  errors: [Error!]
   product: Product
+  errors: [RestockProductError!]
 }
 
-type Review implements Node @key(fields: "id") {
-  author: User @cost(weight: "10")
+type Review implements Node {
+  author: User
   body: String!
   createdAt: DateTime!
   deletedAt: DateTime
@@ -494,13 +454,13 @@ type ReviewResponse {
 }
 
 type MarkReviewHelpfulPayload {
-  errors: [Error!]
   review: Review
+  errors: [MarkReviewHelpfulError!]
 }
 
 type RespondToReviewPayload {
-  errors: [Error!]
   review: Review
+  errors: [RespondToReviewError!]
 }
 
 type ReviewCreated {
@@ -513,14 +473,90 @@ type UnknownProductError implements Error {
   productId: ID!
 }
 
-type UploadProductPicturePayload {
-  errors: [UploadProductPictureError!]
-  product: Product
+type UnknownUserError implements Error {
+  message: String!
+  userId: ID!
 }
 
-# Owned here (Users) with @key(fields: "id"); Orders/Reviews/Recommendations
-# reference it as a stub entity (`extend type User @key(fields: "id") { id: ID! @external }`).
-type User implements Node @key(fields: "id") {
+type InvalidReviewStarsError implements Error {
+  message: String!
+  stars: Int!
+}
+
+type ProductNotInCartError implements Error {
+  message: String!
+  productId: ID!
+}
+
+type UnknownCartError implements Error {
+  message: String!
+  cartId: ID!
+}
+
+type InvalidCouponError implements Error {
+  message: String!
+  code: String!
+}
+
+type UnknownCartItemError implements Error {
+  message: String!
+  cartItemId: ID!
+}
+
+type EmptyOrderError implements Error {
+  message: String!
+}
+
+type UnknownOrderError implements Error {
+  message: String!
+  orderId: ID!
+}
+
+type OrderCannotBeCancelledError implements Error {
+  message: String!
+  orderId: ID!
+}
+
+type UnknownPaymentMethodError implements Error {
+  message: String!
+  paymentMethodId: ID!
+}
+
+type PaymentDeclinedError implements Error {
+  message: String!
+}
+
+type UnknownPaymentError implements Error {
+  message: String!
+  paymentId: ID!
+}
+
+type PaymentCannotBeRefundedError implements Error {
+  message: String!
+  paymentId: ID!
+}
+
+type InvalidRefundAmountError implements Error {
+  message: String!
+  amount: Decimal!
+}
+
+type UnknownNotificationError implements Error {
+  message: String!
+  notificationId: ID!
+}
+
+type UnknownReviewError implements Error {
+  message: String!
+  reviewId: ID!
+}
+
+type UploadProductPicturePayload {
+  product: Product
+  errors: [UploadProductPictureError!]
+}
+
+type User implements Node {
   addresses: [Address!]!
   birthdate: DateTime!
   createdAt: DateTime!
@@ -536,7 +572,7 @@ type User implements Node @key(fields: "id") {
     first: Int
     "Returns the last _n_ elements from the list."
     last: Int
-  ): NotificationsConnection @cost(weight: "10")
+  ): NotificationsConnection
   orders(
     "Returns the elements in the list that come after the specified cursor."
     after: String
@@ -546,9 +582,9 @@ type User implements Node @key(fields: "id") {
     first: Int
     "Returns the last _n_ elements from the list."
     last: Int
-  ): UserOrdersConnection @cost(weight: "10")
-  paymentMethods: [PaymentMethod!]! @cost(weight: "10")
-  recommendations: [Recommendation!]! @cost(weight: "10")
+  ): UserOrdersConnection
+  paymentMethods: [PaymentMethod!]!
+  recommendations: [Recommendation!]!
   reviews(
     "Returns the elements in the list that come after the specified cursor."
     after: String
@@ -558,11 +594,11 @@ type User implements Node @key(fields: "id") {
     first: Int
     "Returns the last _n_ elements from the list."
     last: Int
-  ): UserReviewsConnection @cost(weight: "10")
+  ): UserReviewsConnection
   role: UserRole!
   updatedAt: DateTime!
   username: String!
-  wishlist: [Product!]! @cost(weight: "10")
+  wishlist: [Product!]!
 }
 
 "A connection to a list of items."
@@ -619,12 +655,8 @@ type UsersEdge {
   node: User!
 }
 
-# Viewer is a singleton composition root, not an entity (no @key/id) — each
-# subgraph that contributes to it declares `extend type Viewer @shareable`
-# and its own field(s) (here, cart, owned by the Cart subgraph). Query.viewer
-# must resolve identically (e.g. return `{}`) in every subgraph that extends it.
-type Viewer @shareable {
-  cart: Cart! @cost(weight: "10")
+type Viewer {
+  cart: Cart!
 }
 
 # Every subgraph that returns an error union member must redeclare this
@@ -633,14 +665,59 @@ interface Error {
   message: String!
 }
 
-"The node interface is implemented by entities that have a global unique identifier."
 # Same rule as Error above: redeclare identically in each subgraph whose
 # entities implement Node.
+"The node interface is implemented by entities that have a global unique identifier."
 interface Node {
   id: ID!
 }
 
-union CartQuantityError = ProductAmountCannotBeLowerThanOneError
+union CreateReviewError =
+  | UnknownProductError
+  | UnknownUserError
+  | InvalidReviewStarsError
+
+union AddProductToCartError =
+  | ProductAmountCannotBeLowerThanOneError
+  | UnknownProductError
+
+union RemoveProductFromCartError =
+  | ProductAmountCannotBeLowerThanOneError
+  | ProductNotInCartError
+
+union ApplyCouponError = UnknownCartError | InvalidCouponError
+
+union SaveItemForLaterError = UnknownCartItemError
+
+union MoveSavedItemToCartError = UnknownCartItemError
+
+union CreateOrderError =
+  | UnknownUserError
+  | UnknownProductError
+  | ProductAmountCannotBeLowerThanOneError
+  | EmptyOrderError
+
+union CancelOrderError = UnknownOrderError | OrderCannotBeCancelledError
+
+union CreatePaymentError =
+  | UnknownOrderError
+  | UnknownPaymentMethodError
+  | PaymentDeclinedError
+
+union RefundPaymentError =
+  | UnknownPaymentError
+  | PaymentCannotBeRefundedError
+  | InvalidRefundAmountError
+
+union MarkNotificationReadError = UnknownNotificationError
+
+union RestockProductError =
+  | UnknownProductError
+  | ProductAmountCannotBeLowerThanOneError
+
+union MarkReviewHelpfulError = UnknownReviewError
+
+union RespondToReviewError = UnknownReviewError
 
 union UploadProductPictureError = UnknownProductError
 
@@ -783,9 +860,6 @@ enum UserRole {
   ADMIN
 }
 
-# Scalars below are used across multiple domains; federation has no
-# @shareable for scalars — redeclare each one identically (same name and
-# @specifiedBy url) in every subgraph that uses it.
 "The `DateTime` scalar type represents a date and time with time zone offset information."
 scalar DateTime
   @specifiedBy(url: "https://scalars.graphql.org/chillicream/date-time.html")
@@ -799,29 +873,3 @@ scalar Upload
 
 "The `URI` scalar type represents a Uniform Resource Identifier (URI) as defined by RFC 3986."
 scalar URI @specifiedBy(url: "https://scalars.graphql.org/chillicream/uri.html")
-
-directive @cost(weight: String!) on
-  | SCALAR
-  | OBJECT
-  | FIELD_DEFINITION
-  | ARGUMENT_DEFINITION
-  | ENUM
-  | INPUT_FIELD_DEFINITION
-
-directive @defer(if: Boolean = true, label: String) on
-  | FRAGMENT_SPREAD
-  | INLINE_FRAGMENT
-
-directive @tag(name: String!) repeatable on
-  | SCHEMA
-  | SCALAR
-  | OBJECT
-  | FIELD_DEFINITION
-  | ARGUMENT_DEFINITION
-  | INTERFACE
-  | UNION
-  | ENUM
-  | ENUM_VALUE
-  | INPUT_OBJECT
-  | INPUT_FIELD_DEFINITION
-  | DIRECTIVE_DEFINITION
